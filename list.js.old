@@ -1,0 +1,100 @@
+function go_go_gadget_loader() {
+  go_go_load_data();
+}
+
+function set_load_indicator(load) {
+  var load_indicator = document.getElementById('load_indicator');
+  load_indicator.innerHTML = load;
+}
+
+function go_go_load_data() {
+  var r = new thetr.Request({
+    url: 'check.py/list_all',
+    handler: listDataHandler
+    });
+  var vmlist = document.getElementById('vmlist-body');
+  vmlist.innerHTML = '';
+  set_load_indicator('Loading Data...');
+  r.send();
+}
+
+function listDataHandler(args) {
+  var vmlist = document.getElementById('vmlist-body');
+  var data = eval('(' + args.request.data + ')');
+  vmlist.innerHTML = '';
+  var pmList = [];
+  for (pm in data) {
+    pmList.push(pm);
+  }
+  
+  for (pm in data) {
+    for (var iter = 0, vm; vm = data[pm][iter]; iter++) {
+      var tr = document.createElement('tr');
+      var td = document.createElement('td');
+      //td.innerHTML = pm;
+      var migrate = document.createElement('select');
+      thetr.event.listen({
+        on: migrate,
+        action: 'change',
+        handler: migrate_change,
+        args: {
+          migrate_select: migrate,
+          uuid: vm.uuid,
+          migrate_from: pm
+          }
+        });
+      for (var iter = 0, item; item = pmList[iter]; iter++) {
+        var option = document.createElement('option');
+        option.value = item;
+        option.innerHTML = item;
+        option.selected = (pm == item ? true : false);
+        migrate.appendChild(option);
+      }
+      td.appendChild(migrate);
+      tr.appendChild(td);
+
+      td = document.createElement('td');
+      td.innerHTML = vm.name;
+      tr.appendChild(td);
+      
+      td = document.createElement('td');
+      td.innerHTML = vm.mem_static_max / 1024 / 1024 + "M";
+      tr.appendChild(td);
+
+      vmlist.appendChild(tr);
+    }
+    if (data[pm].length == 0) {
+      var tr = document.createElement('tr');
+      var td = document.createElement('td');
+      td.innerHTML = pm;
+      tr.appendChild(td);
+      td = document.createElement('td');
+      td.innerHTML = '---';
+      tr.appendChild(td);
+      vmlist.appendChild(tr);
+    }
+  }
+  set_load_indicator('');
+}
+
+function migrate_change(args) {
+  //alert('move uuid:' + args.uuid + ' to '  + args.migrate_select.value + ' from ' + args.migrate_from);
+  var postArgs = new thetr.Request.ArgGen({
+    frommachine: args.migrate_from,
+    tomachine: args.migrate_select.value,
+    machineid: args.uuid
+    });
+  var r = new thetr.Request({
+    url: 'check.py/migrate_live',
+    post: postArgs.toString(),
+    handler: migrate_done
+    });
+  set_load_indicator('Migrating...');
+  r.send();
+}
+
+function migrate_done(args) {
+  //alert('done migrating...');
+  set_load_indicator('');
+  go_go_load_data(); 
+}
