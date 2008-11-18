@@ -37,7 +37,7 @@ VM Create <span id="load_indicator"></span>
 <table style="border: 1px solid black">
   <tr>
     <td>Hostname:</td>
-    <td><input type="text" id="hname"></td>
+    <td><input type="text" id="hname">&nbsp;<span id="hname_avail" style="font-weight: bold">-</span></td>
   </tr>
   <tr>
     <td>Memory (M):</td>

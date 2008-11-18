@@ -71,6 +71,7 @@ function listDataHandler(args) {
       vm_block.style.cssFloat = 'left';
       vm_block.innerHTML = vm.name;
       vm_block.style.border = '1px solid black';
+      vm_block.style.cursor = 'move';
       pm_div.appendChild(vm_block);
 
       thetr.event.listen({

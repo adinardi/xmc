@@ -206,11 +206,11 @@ def list_my_vms(req, all=0):
   extra = ''
   if (doall == 0):
     extra = " WHERE owner='" + user + "'"
-  cur.execute("SELECT id, name, owner, mac, disk, mem, swap FROM vmmachines" + extra)
+  cur.execute("SELECT id, name, owner, mac, disk, mem, swap, enabled FROM vmmachines" + extra)
   rows = cur.fetchall()
   vms = []
   for row in rows:
-    vms.append({'id': int(row[0]), 'name': row[1], 'owner': row[2], 'mac': row[3], 'disk': int(row[4]), 'mem': int(row[5]), 'swap': int(row[6]), 'online': _find_vm(row[1])})
+    vms.append({'id': int(row[0]), 'name': row[1], 'owner': row[2], 'mac': row[3], 'disk': int(row[4]), 'mem': int(row[5]), 'swap': int(row[6]), 'enabled': int(row[7]), 'online': _find_vm(row[1])})
   return vms
 
 def boot_vm(req, name):
@@ -345,3 +345,12 @@ def get_base_images(req):
   for row in rows:
     images.append({'name': row[0], 'desc': row[1]})
   return images
+
+def check_name_avail(req, name):
+  conn = _get_db_conn()
+  cur = conn.cursor()
+  cur.execute("SELECT name FROM vmmachines WHERE name = '" + MySQLdb.escape_string(name) + "'")
+  row = cur.fetchone()
+  if row is None:
+    return {'status': 'OK', 'avail': 1}
+  return {'status': 'OK', 'avail': 0}

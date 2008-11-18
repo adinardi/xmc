@@ -43,13 +43,19 @@ function handle_list_my_vms(args) {
     content.push('Mem: ' + vm.mem);
     content.push('Disk: ' + vm.disk);
     content.push('Swap: ' + vm.swap);
+    content.push('Mac: ' + vm.mac);
     content.push(vm.online.power_state);
-    if (vm.online.power_state == 'Running') {
-      content.push('<button onclick="do_shutdown({name:\'' + vm.name + '\'})">Shutdown</button>');
-    } else if (vm.online.power_state == 'Halted') {
-      content.push('<button onclick="do_destroy({name:\'' + vm.name + '\'})">Destroy</button>');
-    } else if (vm.online.power_state == 'Off') {
-      content.push('<button onclick="do_boot({name:\'' + vm.name + '\'})">Boot</button>');
+    if (vm.enabled == 1) {
+      if (vm.online.power_state == 'Running') {
+        content.push('<button onclick="do_shutdown({name:\'' + vm.name + '\'})">Shutdown</button>');
+      } else if (vm.online.power_state == 'Halted') {
+        content.push('<button onclick="do_destroy({name:\'' + vm.name + '\'})">Destroy</button>');
+      } else if (vm.online.power_state == 'Off') {
+        content.push('<button onclick="do_boot({name:\'' + vm.name + '\'})">Boot</button>');
+      }
+    } else {
+      content.push('<font color=red><b>Creating...</b></font>');
+      content.push('Wait to boot...');
     }
     d.innerHTML = content.join("<br>");
     cont.appendChild(d);

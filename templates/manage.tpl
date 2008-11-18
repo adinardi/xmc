@@ -3,8 +3,8 @@ Manage VMs <span id="adminall" style="display: none">(<a href="#" onclick="load_
 <style>
   .vmbox {ldelim}
     float: left;
-    width: 100;
-    height: 150;
+    width: 120;
+    height: 165;
     border: 2px solid blue;
   {rdelim}
   .vmon {ldelim}

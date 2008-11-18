@@ -1,8 +1,54 @@
 var IN_DRAG_VM = false;
 var CURRENT_OVER_PM = null;
+var HNAME_VALID = false;
 
 function go_go_gadget_loader() {
   go_go_load_data();
+  thetr.event.listen({
+    on: document.getElementById('hname'),
+    action: 'keyup',
+    handler: handle_hname_change
+    });
+}
+
+var LAST_HNAME_CHANGE_TIMER = null;
+function handle_hname_change(args) {
+  if (LAST_HNAME_CHANGE_TIMER) {
+    clearTimeout(LAST_HNAME_CHANGE_TIMER);
+  }
+
+  LAST_HNAME_CHANGE_TIMER = setTimeout(handle_hname_change_timer, 500);
+  document.getElementById('hname_avail').innerHTML = "?";
+}
+
+function handle_hname_change_timer() {
+  var name = document.getElementById('hname').value;
+  // If the input is nothing, then short-circuit the request with NOT available.
+  if (name == '') {
+    set_hname_avail({avail: 0});
+    return;
+  }
+  var r = new thetr.Request({
+    url: 'check.py/check_name_avail?name=' + name,
+    handler: handle_hname_avail_check
+    });
+  r.send();
+}
+
+function handle_hname_avail_check(args) {
+  var data = eval('(' + args.request.data + ')');
+  set_hname_avail(data);
+}
+
+function set_hname_avail(args) {
+  var hname = document.getElementById('hname_avail');
+  if (args.avail == 1) {
+    hname.innerHTML = "<span style='color: green'>+</span>";
+    HNAME_VALID = true;
+  } else {
+    hname.innerHTML = "<span style='color: red'>-</span>";
+    HNAME_VALID = false;
+  }
 }
 
 function go_go_load_data() {
@@ -169,6 +215,7 @@ function go_create_alloc_vm(args) {
   } else {*/
     var specs = args.specs;
     hname.value = '';
+    set_hname_avail({avail: 0});
     dsize.value = (specs.disk ? specs.disk : '');
     dsize.disabled = specs.disk;
     ssize.value = (specs.swap ? specs.swap : '');
@@ -197,6 +244,11 @@ function go_create_vm() {
 
   if (hname == '' || dsize == '' || ssize == '' || imagename == '' || mac_address == '' || mem == '' || owner == '') {
     alert('All fields need to be completed');
+    return;
+  }
+
+  if (!HNAME_VALID) {
+    alert('Hostname is invalid or taken');
     return;
   }
 
