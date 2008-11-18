@@ -1,4 +1,4 @@
-<?php /* Smarty version 2.6.18, created on 2008-11-08 01:16:38
+<?php /* Smarty version 2.6.18, created on 2008-11-17 02:27:57
          compiled from create.tpl */ ?>
 <?php $_smarty_tpl_vars = $this->_tpl_vars;
 $this->_smarty_include(array('smarty_include_tpl_file' => 'header.tpl', 'smarty_include_vars' => array()));
@@ -13,13 +13,17 @@ VM Create <span id="load_indicator"></span>
   .vmtable {
     border-collapse: collapse;
   }
+  .vmtable td, th {
+    padding-left: 5px;
+    padding-right: 5px;
+  }
   .vmtable tr {
     background-color: lightgrey;
     border: 2px solid white;
   }
 </style>
 
-<div style="border: 1px solid blue; display: inline-block;">
+<div style="border: 1px solid blue; display: inline-block; padding: 1px;">
 <table id="allocvms" style="" class="vmtable">
   <thead>
     <th>Disk</th>
@@ -55,7 +59,7 @@ VM Create <span id="load_indicator"></span>
   </tr>
   <tr>
     <td>Base Image:</td>
-    <td><input type="text" id="imagename"></td>
+    <td><select id="imagename"></select></td>
   </tr>
   <tr>
     <td>Mac Address (00:16:3e:xx:xx:xx):</td>

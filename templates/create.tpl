@@ -7,13 +7,17 @@ VM Create <span id="load_indicator"></span>
   .vmtable {ldelim}
     border-collapse: collapse;
   {rdelim}
+  .vmtable td, th {ldelim}
+    padding-left: 5px;
+    padding-right: 5px;
+  {rdelim}
   .vmtable tr {ldelim}
     background-color: lightgrey;
     border: 2px solid white;
   {rdelim}
 </style>
 
-<div style="border: 1px solid blue; display: inline-block;">
+<div style="border: 1px solid blue; display: inline-block; padding: 1px;">
 <table id="allocvms" style="" class="vmtable">
   <thead>
     <th>Disk</th>
@@ -49,7 +53,7 @@ VM Create <span id="load_indicator"></span>
   </tr>
   <tr>
     <td>Base Image:</td>
-    <td><input type="text" id="imagename"></td>
+    <td><select id="imagename"></select></td>
   </tr>
   <tr>
     <td>Mac Address (00:16:3e:xx:xx:xx):</td>

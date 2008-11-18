@@ -91,6 +91,7 @@ function handle_mouse_down_vm(args) {
   var be = args.browserEvent;
   var startX = be.clientX;
   var startY = be.clientY;
+  document.body.onselectstart = function() { return false; }
   thetr.event.listen({
     on: document,
     action: 'mouseup',
@@ -111,6 +112,7 @@ function handle_doc_mouse_up(args) {
     action: 'mouseup',
     handler: handle_doc_mouse_up
     });
+  document.body.onselectstart = null;
   IN_DRAG_VM = false;
   var be = args.browserEvent;
   var eX = be.clientX;

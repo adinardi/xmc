@@ -6,6 +6,17 @@
   <script type="text/javascript" src="jscore/Event.js"></script>
   <script type="text/javascript" src="jscore/Loader.js"></script>
   <script type="text/javascript" src="{$pagename}.js"></script>
+  {literal}
+    <style>
+      body, table {
+        font-family: Arial;
+        font-size: 14px;
+      }
+      a {
+        color: blue;
+      }
+    </style>
+  {/literal}
 </head>
 <body onload="go_go_gadget_loader()">
 <div>

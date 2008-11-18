@@ -1,28 +1,57 @@
 var IN_DRAG_VM = false;
 var CURRENT_OVER_PM = null;
-var CURRENT_USER_INFO = null;
 
 function go_go_gadget_loader() {
   go_go_load_data();
 }
 
 function go_go_load_data() {
-  var r = new thetr.Request({
-    url: 'check.py/get_create_user_info',
+  set_load_indicator('Loading User Data...');
+  thetr.event.listen({
+    on: CURRENT_USER_INFO,
+    action: 'loaded',
     handler: userInfoHandler
     });
+  load_user_info({createInfo: true});
   var container = document.getElementById('container');
-  set_load_indicator('Loading User Data...');
-  r.send();
 }
 
 function userInfoHandler(args) {
-  var data = eval( "(" + args.request.data + ")" );
-  set_load_indicator('');
-  //console.log(data);
+  thetr.event.unlisten({
+    on: CURRENT_USER_INFO,
+    action: 'loaded',
+    handler: userInfoHandler
+    });
+
+  var data = CURRENT_USER_INFO;
   document.getElementById('username').innerHTML = data.user.username + (data.user.admin == 1 ? " (admin)" : "");
   document.getElementById('avail_vms').innerHTML = data.allocvms.length;
-  CURRENT_USER_INFO = data;
+  set_load_indicator('');
+  get_base_images();
+}
+
+
+function get_base_images() {
+  set_load_indicator('Loading base images...');
+  var r = new thetr.Request({
+    url: 'check.py/get_base_images',
+    handler: get_base_images_handler
+   });
+  r.send();
+}
+
+function get_base_images_handler(args) {
+  var data = eval('(' + args.request.data + ')')
+  set_load_indicator('')
+
+  var imgselect = document.getElementById('imagename');
+  for (var iter = 0, img; img = data[iter]; iter++) {
+    var o = document.createElement('option');
+    o.innerHTML = img.desc;
+    o.value = img.name;
+    imgselect.appendChild(o);
+  }
+
   load_allocvms();
 }
 

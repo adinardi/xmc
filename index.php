@@ -9,7 +9,11 @@ $smarty->config_dir = 'configs/';
 $smarty->cache_dir = 'cache/';
 
 //$smarty->debugging = true;
-require_once($_GET['p'] . ".inc");
-$smarty->assign('pagename', $_GET['p']);
-$smarty->display($_GET['p'] . '.tpl');
+$page = $_GET['p'];
+if (strlen($page) == 0) {
+  $page = 'manage';
+}
+require_once($page . ".inc");
+$smarty->assign('pagename', $page);
+$smarty->display($page . '.tpl');
 ?>

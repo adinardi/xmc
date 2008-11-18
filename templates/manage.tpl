@@ -1,10 +1,10 @@
 {include file='header.tpl'}
-Manage VMs (<a href="#" onclick="load_vm_list({ldelim}all:1{rdelim});">all</a>)
+Manage VMs <span id="adminall" style="display: none">(<a href="#" onclick="load_vm_list({ldelim}all:1{rdelim});">all</a>)</span>
 <style>
   .vmbox {ldelim}
     float: left;
     width: 100;
-    height: 100;
+    height: 150;
     border: 2px solid blue;
   {rdelim}
   .vmon {ldelim}
