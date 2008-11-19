@@ -1,4 +1,4 @@
-<?php /* Smarty version 2.6.18, created on 2008-11-17 05:49:23
+<?php /* Smarty version 2.6.18, created on 2008-11-18 17:31:09
          compiled from header.tpl */ ?>
 <html>
 <head>
@@ -18,11 +18,23 @@
       a {
         color: blue;
       }
+      .statusbox {
+        position: absolute;
+        left: 300px;
+        top: 0px;
+        height: 20px;
+        width: 200px;
+        text-align: center;
+        background-color: yellow;
+      }
     </style>
   '; ?>
 
 </head>
 <body onload="go_go_gadget_loader()">
+<div class="statusbox" id="status_box" style="display: none">
+Status Box
+</div>
 <div>
   <span><a href="index.php?p=list">List</a></span>
   <span>&nbsp;</span>

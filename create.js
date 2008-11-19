@@ -277,7 +277,8 @@ function go_create_vm_handler(args) {
   if (data.status == 'FAIL') {
     alert('Failed to create VM:' + data.reason);
   }
-  document.getElementById('vmconfigStatus').innerHTML = 'Create OK';
+  set_load_indicator('Creation Successful');
+  //document.getElementById('vmconfigStatus').innerHTML = 'Create Successful';
   setTimeout(function() {
     document.getElementById('vmconfigStatus').innerHTML = '';
     }, 6000);

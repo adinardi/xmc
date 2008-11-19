@@ -1,3 +1,5 @@
+var LAST_LOADED_VM_LIST_ARGS = null;
+
 function go_go_gadget_loader() {
   thetr.event.listen({
     on: CURRENT_USER_INFO,
@@ -9,10 +11,12 @@ function go_go_gadget_loader() {
 }
 
 function load_vm_list(args) {
+  LAST_LOADED_VM_LIST_ARGS = args;
   var r = new thetr.Request({
     url: 'check.py/list_my_vms' + (args.all ? '?all=1' : ''),
     handler: handle_list_my_vms
     });
+  set_status_box({ msg: 'Loading VM List...' });
   r.send();
 }
 
@@ -30,7 +34,6 @@ function user_info_loaded(args) {
 
 function handle_list_my_vms(args) {
   var data = eval("(" + args.request.data + ")");
-  console.log(data);
 
   var cont = document.getElementById('vmcontainer');
   cont.innerHTML = '';
@@ -60,6 +63,7 @@ function handle_list_my_vms(args) {
     d.innerHTML = content.join("<br>");
     cont.appendChild(d);
   }
+  set_status_box({ msg: 'Loaded VM List', time: 500});
 }
 
 function do_shutdown(args) {
@@ -71,11 +75,13 @@ function do_shutdown(args) {
     url: 'check.py/shutdown_vm?name=' + args.name,
     handler: handle_shutdown
     });
+  set_status_box({ msg: 'Shutting down ' + args.name + '...' });
   r.send();
 }
 
 function handle_shutdown(args) {
-
+  set_status_box({ msg: 'Shutdown successful', time: 500 });
+  load_vm_list(LAST_LOADED_VM_LIST_ARGS);
 }
 
 function do_destroy(args) {
@@ -99,9 +105,11 @@ function do_boot(args) {
     url: 'check.py/boot_vm?name=' + args.name,
     handler: handle_boot
     });
+  set_status_box({ msg: 'Booting ' + args.name + '...' });
   r.send();
 }
 
 function handle_boot(args) {
-
+  set_status_box({ msg: 'Boot successful', time: 500 });
+  load_vm_list(LAST_LOADED_VM_LIST_ARGS);
 }

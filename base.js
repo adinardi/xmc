@@ -1,8 +1,36 @@
 var CURRENT_USER_INFO = {};
+var STATUS_BOX_TIMEOUT = null;
 
 function set_load_indicator(load) {
-  var load_indicator = document.getElementById('load_indicator');
-  load_indicator.innerHTML = load;
+  set_status_box({msg: load});
+}
+
+/**
+ * @param {string} msg
+ * @param {number} time (Optional) Time before disapearing. 
+ */
+function set_status_box(args) {
+  if (STATUS_BOX_TIMEOUT) {
+    clearTimeout(STATUS_BOX_TIMEOUT);
+    STATUS_BOX_TIMEOUT = null;
+  }
+
+  var load_indicator = document.getElementById('status_box');
+  if (args.msg && args.msg != '') {
+    load_indicator.style.display = '';
+  } else {
+    load_indicator.style.display = 'none';
+  }
+  load_indicator.innerHTML = args.msg;
+
+  if (args.time) {
+    STATUS_BOX_TIMEOUT = setTimeout(
+      function() {
+        set_status_box({msg: null});
+      },
+      args.time
+      );
+  }
 }
 
 function get_div() {

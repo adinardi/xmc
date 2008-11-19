@@ -15,10 +15,22 @@
       a {
         color: blue;
       }
+      .statusbox {
+        position: absolute;
+        left: 300px;
+        top: 0px;
+        height: 20px;
+        width: 200px;
+        text-align: center;
+        background-color: yellow;
+      }
     </style>
   {/literal}
 </head>
 <body onload="go_go_gadget_loader()">
+<div class="statusbox" id="status_box" style="display: none">
+Status Box
+</div>
 <div>
   <span><a href="index.php?p=list">List</a></span>
   <span>&nbsp;</span>
