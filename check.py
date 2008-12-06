@@ -4,7 +4,7 @@ from mod_python import Session as MPSession
 import MySQLdb
 import time
 
-machines = [ 'fuck', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14' ];
+machines = [ 'fuck', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '16', 'tp' ];
 
 def handle_req():
   return apache.OK
@@ -213,11 +213,11 @@ def list_my_vms(req, all=0):
     vms.append({'id': int(row[0]), 'name': row[1], 'owner': row[2], 'mac': row[3], 'disk': int(row[4]), 'mem': int(row[5]), 'swap': int(row[6]), 'enabled': int(row[7]), 'online': _find_vm(row[1])})
   return vms
 
-def boot_vm(req, name):
+def boot_vm(req, name, machine='clusterfuck'):
   user = _get_username(req)
   info = _get_user_info(user)
 
-  xenapi = _get_api('clusterfuck')
+  xenapi = _get_api(machine)
   conn = _get_db_conn()
   cur = conn.cursor()
   cur.execute("SELECT id, name, mac, mem, kernel, kernel_args, owner FROM vmmachines WHERE name = '" + MySQLdb.escape_string(name) + "'")

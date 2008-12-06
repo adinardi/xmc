@@ -32,13 +32,13 @@ function listDataHandler(args) {
   for (pm in data) {
     // Make PM Row
     var pm_div = get_div();
-    pm_div.style.height = '75px';
+    pm_div.style.height = '35px';
     container.appendChild(pm_div);
 
     // Make PM Block
     var pm_block = get_div();
     pm_block.style.width = '73px';
-    pm_block.style.height = '73px';
+    pm_block.style.height = '33px';
     pm_block.innerHTML = pm;
     pm_block.style.cssFloat = 'left';
     pm_block.style.border = '1px dashed purple';
@@ -67,7 +67,7 @@ function listDataHandler(args) {
       // Make VM Block
       var vm_block = get_div();
       vm_block.style.width = '73px';
-      vm_block.style.height = '73px';
+      vm_block.style.height = '33px';
       vm_block.style.cssFloat = 'left';
       vm_block.innerHTML = vm.name;
       vm_block.style.border = '1px solid black';
