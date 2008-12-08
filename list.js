@@ -44,26 +44,30 @@ function listDataHandler(args) {
     pm_block.style.border = '1px dashed purple';
     pm_div.appendChild(pm_block);
 
-    thetr.event.listen({
-      on: pm_block,
-      action: 'mouseover',
-      handler: handle_pm_mouse_over,
-      args: {
-        over: pm,
-        element: pm_block
-        }
-      });
-    thetr.event.listen({
-      on: pm_block,
-      action: 'mouseout',
-      handler: handle_pm_mouse_out,
-      args: {
-        over: pm,
-        element: pm_block
-        }
-      });
+    if (data[pm]['up'] == 0) {
+      pm_block.style.backgroundColor = 'grey';
+    } else {
+      thetr.event.listen({
+        on: pm_block,
+        action: 'mouseover',
+        handler: handle_pm_mouse_over,
+        args: {
+          over: pm,
+          element: pm_block
+          }
+        });
+      thetr.event.listen({
+        on: pm_block,
+        action: 'mouseout',
+        handler: handle_pm_mouse_out,
+        args: {
+          over: pm,
+          element: pm_block
+          }
+        });
+    }
 
-    for (var iter = 0, vm; vm = data[pm][iter]; iter++) {
+    for (var iter = 0, vm; vm = data[pm]['vms'][iter]; iter++) {
       // Make VM Block
       var vm_block = get_div();
       vm_block.style.width = '73px';

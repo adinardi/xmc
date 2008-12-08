@@ -4,10 +4,26 @@ from mod_python import Session as MPSession
 import MySQLdb
 import time
 
-machines = [ 'fuck', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '16', 'tp' ];
+#machines = [ 'fuck', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '16', 'tp' ];
+conn = None
 
 def handle_req():
   return apache.OK
+
+def _get_machines(onlineOnly=True):
+  conn = _get_db_conn()
+  cur = conn.cursor()
+  extra = ''
+  if (onlineOnly):
+    extra = ' WHERE up = 1'
+  cur.execute("SELECT id, name, mac, mem, up FROM pmmachines" + extra)
+
+  machines = []
+  rows = cur.fetchall()
+  for row in rows:
+    machines.append({'id': row[0], 'name': row[1], 'mac': row[2], 'mem': row[3], 'up': row[4]})
+
+  return machines
 
 def _get_username(req):
   pw = req.get_basic_auth_pw();
@@ -27,7 +43,9 @@ def _is_admin(req):
   return False;
 
 def _get_db_conn():
-  conn = MySQLdb.connect(host='db.csh.rit.edu', user='xen', passwd='tFQNBKB,JzGxESLm', db='xen')
+  global conn
+  if (conn is None):
+    conn = MySQLdb.connect(host='db.csh.rit.edu', user='xen', passwd='tFQNBKB,JzGxESLm', db='xen')
   return conn
 
 def _get_api(machine):
@@ -41,31 +59,47 @@ def _get_api(machine):
 
 def list_all(req):
   data = "{";
+  datao = {}
   m = 0;
-  for machine in machines:
-    machine = 'cluster' + machine;
-    xenapi = _get_api(machine);
-    if (xenapi is None):
-      continue;
-    records=xenapi.VM.get_all_records();
+  machines = _get_machines(False)
+  for mach in machines:
+    machine = mach['name'];
     if (m):
       data += ', ';
     data += machine + ': [';
+    datao[machine] = {'up': mach['up']}
+    datao[machine]['vms'] = []
+    m += 1
+
+    if (mach['up'] == 1):
+      xenapi = _get_api(machine);
+      if (xenapi is None):
+        data += ']';
+        datao[machine]['up'] = 0
+        continue;
+      records=xenapi.VM.get_all_records();
+    else:
+      data += ']';
+      continue;
+    data += ']';
+
     i = 0;
     for item in records:
       if (records[item]['name_label'] != 'Domain-0'):
         if (i):
           data += ", ";
         data += "{name:'" + records[item]['name_label'] + "', uuid:'" + records[item]['uuid'] + "', mem_static_max:'" + records[item]['memory_static_max'] + "'}";
+        ri = records[item]
+        datao[machine]['vms'].append({'name': ri['name_label'], 'uuid': ri['uuid'], 'mem_static_max': ri['memory_static_max']})
         i += 1;
     data += ']';
-    m += 1
   data += "}";
-  return data;
+  return datao;
 
 def _find_vm(name):
-  for machine in machines:
-    machine = 'cluster' + machine
+  machines = _get_machines(True)
+  for mach in machines:
+    machine = mach['name']
     xenapi = _get_api(machine);
     if (xenapi is None):
       continue;
@@ -217,6 +251,8 @@ def boot_vm(req, name, machine='clusterfuck'):
   user = _get_username(req)
   info = _get_user_info(user)
 
+  if (info['admin'] != 1):
+    machine = 'clusterfuck'
   xenapi = _get_api(machine)
   conn = _get_db_conn()
   cur = conn.cursor()
