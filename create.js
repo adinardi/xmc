@@ -241,6 +241,7 @@ function go_create_vm() {
   var mac_address = document.getElementById('mac_address').value;
   var mem = document.getElementById('mem').value;
   var owner = document.getElementById('owner').value;
+  var start = document.getElementById('start_register').value;
 
   if (hname == '' || dsize == '' || ssize == '' || imagename == '' || mac_address == '' || mem == '' || owner == '') {
     alert('All fields need to be completed');
@@ -260,7 +261,8 @@ function go_create_vm() {
     ssize: ssize,
     mem: mem,
     owner: owner,
-    allocid: (CHOSEN_VM_SPEC.id ? CHOSEN_VM_SPEC.id : 'new')
+    allocid: (CHOSEN_VM_SPEC.id ? CHOSEN_VM_SPEC.id : 'new'),
+    start_register: start
     });
   var r = new thetr.Request({
     url: 'check.py/create_vm',
@@ -276,6 +278,9 @@ function go_create_vm_handler(args) {
   var data = eval("(" + args.request.data + ")");
   if (data.status == 'FAIL') {
     alert('Failed to create VM:' + data.reason);
+    document.getElementById('vmconfig').style.display = '';
+    set_load_indicator('');
+    return;
   }
   set_load_indicator('Creation Successful');
   //document.getElementById('vmconfigStatus').innerHTML = 'Create Successful';

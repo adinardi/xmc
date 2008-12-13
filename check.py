@@ -2,10 +2,18 @@ from xen.xm.XenAPI import Session
 from mod_python import apache
 from mod_python import Session as MPSession
 import MySQLdb
+import pgdb
 import time
+from pgdb import IntegrityError
 
-#machines = [ 'fuck', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '16', 'tp' ];
+# MySQL Database Connection, xen DB
 conn = None
+
+# Postgres Database Connection, network DB
+pg_conn = None
+
+def _handle_cleanup():
+  _release_db_conn()
 
 def handle_req():
   return apache.OK
@@ -45,8 +53,20 @@ def _is_admin(req):
 def _get_db_conn():
   global conn
   if (conn is None):
-    conn = MySQLdb.connect(host='db.csh.rit.edu', user='xen', passwd='tFQNBKB,JzGxESLm', db='xen')
+    conn = MySQLdb.connect(host='localhost', user='root', passwd='<XEN PASS HERE>', db='xen')
   return conn
+
+def _release_db_conn():
+  global conn
+  if (conn is not None):
+    conn.close()
+    conn = None
+
+def _get_pg_db_conn():
+  global pg_conn
+  if (pg_conn is None):
+    pg_conn = pgdb.connect(host='db.csh.rit.edu', user='net_user', password='<NET PASS HERE>', database='network')
+  return pg_conn
 
 def _get_api(machine):
   session=Session('http://' + machine + ':9363');
@@ -94,6 +114,7 @@ def list_all(req):
         i += 1;
     data += ']';
   data += "}";
+  _release_db_conn()
   return datao;
 
 def _find_vm(name):
@@ -135,6 +156,7 @@ def migrate_live(req, frommachine, machineid, tomachine):
         cleaning = 0
     except:
       cleaning = 0
+  _release_db_conn()
 
 def _get_user_info(user):
   conn = _get_db_conn();
@@ -149,13 +171,15 @@ def _get_user_info(user):
 def get_user_info(req):
   user = _get_username(req);
   info = _get_user_info(user);
+  _release_db_conn()
   return {'user': info};
 
 def get_create_user_info(req):
   user = _get_username(req);
   info = _get_user_info(user);
   allocvms = _get_unused_vms(user);
-  all_info = {'user': info, 'allocvms': allocvms};
+  all_info = {'user': info, 'allocvms': allocvms}
+  _release_db_conn()
   return all_info;
 
 def _get_unused_vms(user):
@@ -171,7 +195,7 @@ def _get_unused_vms(user):
     vms.append({'id': str(row[0]), 'mac': mac, 'disk': int(row[2]), 'mem': int(row[3]), 'swap': int(row[4]), 'owner': row[5]});
   return vms
 
-def create_vm(req, hname, dsize, ssize, imagename, mac, allocid, mem, owner):
+def create_vm(req, hname, dsize, ssize, imagename, mac, allocid, mem, owner, start_register):
   user = _get_user_info(_get_username(req));
   conn = _get_db_conn();
   cur = conn.cursor();
@@ -188,6 +212,7 @@ def create_vm(req, hname, dsize, ssize, imagename, mac, allocid, mem, owner):
 
   # Check if we got an alloc id or else that we're an admin
   if (allocid == None and user['admin'] != 1):
+    _release_db_conn()
     return "{status: 'FAIL', reason: 'Not an admin. Must use preallocated VM'}";
 
   # Get the allocation we're going to use, if we're using one.
@@ -203,17 +228,46 @@ def create_vm(req, hname, dsize, ssize, imagename, mac, allocid, mem, owner):
       aowner = row[4]
 
   if (usingPrealloc == 0 and user['admin'] != 1):
+    _release_db_conn()
     return "{status: 'FAIL', reason: 'Not authorized to create new VM'}"
 
   # Check that the base image name is legitimate
   cur.execute("SELECT name FROM images WHERE name = '" + MySQLdb.escape_string(imagename) + "'")
   row = cur.fetchall()
   if (row is None):
+    _release_db_conn()
     return {'status': 'OK', 'reason': 'image name is not valid'}
 
   # If we're using a pre-allocated VM, make sure un-changeable settings aren't changed.
   if (usingPrealloc == 1 and ((amac != None and amac != mac) or (adsize != None and int(adsize) != int(dsize)) or (assize != None and int(assize) != int(ssize)) or (amem != None and int(amem) != int(mem)) or (aowner != None and aowner != owner))):
+    _release_db_conn()
     return "{status: 'FAIL', reason: 'Locked attributes do not match amac:" + str(amac) + " adsize:" + str(adsize) + " assize:" + str(assize) + " amem:" + str(amem) + " aowner:" + str(aowner) + "'}"
+
+
+  # If the user chose to do a registration on start, register it
+  if (start_register == 'on'):
+    # DO Network Registration
+    pg_conn = _get_pg_db_conn()
+    pg_cur = pg_conn.cursor()
+
+    #pg_cur.execute("SELECT last_ip FROM address_ranges WHERE first_ip = '129.21.61.1'")
+    pg_cur.execute("SELECT ip_address FROM host_cache WHERE ip_address BETWEEN '129.21.60.160' AND '129.21.60.175' AND in_use = false ORDER BY ip_address LIMIT 1")
+    row = pg_cur.fetchone()
+    if (row is not None):
+      ip_addr = row[0]
+      pg_cur.execute("UPDATE host_cache SET in_use = true WHERE ip_address = '" + str(ip_addr) +"'")
+
+      try:
+        pg_cur.execute("INSERT INTO hosts (hardware_address, ip_address, hostname, username, auth_user) VALUES ('" + pgdb.escape_string(mac) + "', '" + ip_addr + "', '" + pgdb.escape_string(hname) + "', '" + pgdb.escape_string(owner) + "', 'adinardi')")
+      except pgdb.DatabaseError:
+        # END HERE. Return failure since we can't register
+        pg_conn.rollback()
+        _release_db_conn()
+        return {'status': 'FAIL', 'reason': 'Hostname or MAC address already registered.'}
+
+      pg_cur.execute("INSERT INTO process_queue (event_class) VALUES ('RELDHCP')")
+      pg_conn.commit()
+
 
   # ADD MYSQL DB WRITE HERE.
   cur.execute("INSERT INTO vmmachines (name, owner, mac, disk, mem, swap) VALUES('" + MySQLdb.escape_string(hname) + "', '" + MySQLdb.escape_string(owner) + "', '" + MySQLdb.escape_string(mac) + "', '" + MySQLdb.escape_string(dsize) + "', '" + MySQLdb.escape_string(mem) + "', '" + MySQLdb.escape_string(ssize) + "')");
@@ -227,6 +281,8 @@ def create_vm(req, hname, dsize, ssize, imagename, mac, allocid, mem, owner):
   FILE = open('/mnt/vms/configs/new/' + hname + '.defs', "w");
   FILE.write("-n " + hname + " -d " + dsize + " -s " + ssize + " -b " + imagename + " -m " + mac + " -e " + mem);
   FILE.close();
+
+  _release_db_conn()
   return "{status: 'OK'}"
 
 def list_my_vms(req, all=0):
@@ -245,6 +301,7 @@ def list_my_vms(req, all=0):
   vms = []
   for row in rows:
     vms.append({'id': int(row[0]), 'name': row[1], 'owner': row[2], 'mac': row[3], 'disk': int(row[4]), 'mem': int(row[5]), 'swap': int(row[6]), 'enabled': int(row[7]), 'online': _find_vm(row[1])})
+  _release_db_conn()
   return vms
 
 def boot_vm(req, name, machine='clusterfuck'):
@@ -310,6 +367,7 @@ def boot_vm(req, name, machine='clusterfuck'):
       'type': 'Disk'
       })
   xenapi.VM.start(vm_ref, 0)
+  _release_db_conn()
   return {'status': 'OK'}
 
 def shutdown_vm(req, name):
@@ -340,6 +398,7 @@ def shutdown_vm(req, name):
     if (info['power_state'] == 'Off'):
       still_on = 0
   
+  _release_db_conn()
   return {'status': 'OK'}
 
 def destroy_vm(req, name):
@@ -364,6 +423,7 @@ def destroy_vm(req, name):
     return {'status': 'FAIL', 'reason':'No VM with that name'}
 
   xenapi.VM.destroy(vm_ref[0])
+  _release_db_conn()
   return {'status': 'OK'}
 
 def get_base_images(req):
@@ -380,6 +440,7 @@ def get_base_images(req):
   images = []
   for row in rows:
     images.append({'name': row[0], 'desc': row[1]})
+  _release_db_conn()
   return images
 
 def check_name_avail(req, name):
@@ -388,5 +449,7 @@ def check_name_avail(req, name):
   cur.execute("SELECT name FROM vmmachines WHERE name = '" + MySQLdb.escape_string(name) + "'")
   row = cur.fetchone()
   if row is None:
+    _release_db_conn()
     return {'status': 'OK', 'avail': 1}
+  _release_db_conn()
   return {'status': 'OK', 'avail': 0}

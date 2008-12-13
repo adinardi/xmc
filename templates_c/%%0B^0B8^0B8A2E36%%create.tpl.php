@@ -1,4 +1,4 @@
-<?php /* Smarty version 2.6.18, created on 2008-11-18 04:08:37
+<?php /* Smarty version 2.6.18, created on 2008-12-09 09:44:15
          compiled from create.tpl */ ?>
 <?php $_smarty_tpl_vars = $this->_tpl_vars;
 $this->_smarty_include(array('smarty_include_tpl_file' => 'header.tpl', 'smarty_include_vars' => array()));
@@ -43,7 +43,7 @@ VM Create <span id="load_indicator"></span>
 <table style="border: 1px solid black">
   <tr>
     <td>Hostname:</td>
-    <td><input type="text" id="hname">&nbsp;<span id="hname_avail" style="font-weight: bold">-</span></td>
+    <td><input type="text" id="hname">.csh.rit.edu&nbsp;<span id="hname_avail" style="font-weight: bold">-</span></td>
   </tr>
   <tr>
     <td>Memory (M):</td>
@@ -63,7 +63,8 @@ VM Create <span id="load_indicator"></span>
   </tr>
   <tr>
     <td>Mac Address (00:16:3e:xx:xx:xx):</td>
-    <td><input type="text" id="mac_address"></td>
+    <td><input type="text" id="mac_address"><br>
+      <input type="checkbox" id="start_register" checked="checked" value="on"><label for="start_register">Register automatically on start</label></td>
   </tr>
   <tr>
     <td>Owner:</td>
