@@ -164,7 +164,7 @@ def _get_user_info(user):
   cur.execute("SELECT admin FROM users WHERE user='" + MySQLdb.escape_string(user) + "'");
   res = cur.fetchone()
   if (res == None):
-    return None
+    return {'admin': 0, 'username': user}
   info = {'admin': res[0], 'username': user}
   return info
 
@@ -346,17 +346,25 @@ def boot_vm(req, name, machine='clusterfuck'):
     'MAC': vmmac
     })
 
-  cur.execute("SELECT file, device FROM vmdisks WHERE vmmachineid = " + str(int(vmid)))
+  cur.execute("SELECT file, device, id FROM vmdisks WHERE vmmachineid = " + str(int(vmid)))
   rows = cur.fetchall()
   for row in rows:
     dfile = row[0]
     ddevice = row[1]
+    did = row[2]
+
+    # Check if we actually have a filename.
+    # If we do, then loopback, otherwise we're going AoE baby
+    if (dfile.find('.') == -1):
+      location = 'phy:/dev/etherd/e' + str(did) + '.0'
+    else:
+      location = 'tap:aio:/mnt/vms/domains/' + vmname + '/' + dfile
 
     disk_vdi = xenapi.VDI.create({
       'name_label': 'disk',
       'type': 'system',
       'SR': xenapi.SR.get_all()[0],
-      'other_config': {'location': 'tap:aio:/mnt/vms/domains/' + vmname + '/' + dfile}
+      'other_config': {'location': location}
       })
     disk_vbd = xenapi.VBD.create({
       'VM': vm_ref,

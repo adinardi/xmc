@@ -58,7 +58,7 @@ VM Create <span id="load_indicator"></span>
   <tr>
     <td>Mac Address (00:16:3e:xx:xx:xx):</td>
     <td><input type="text" id="mac_address"><br>
-      <input type="checkbox" id="start_register" checked="checked" value="on"><label for="start_register">Register automatically on start</label></td>
+      <input type="checkbox" id="start_register" checked="checked"><label for="start_register">Register automatically on start</label></td>
   </tr>
   <tr>
     <td>Owner:</td>

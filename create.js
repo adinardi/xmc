@@ -241,7 +241,7 @@ function go_create_vm() {
   var mac_address = document.getElementById('mac_address').value;
   var mem = document.getElementById('mem').value;
   var owner = document.getElementById('owner').value;
-  var start = document.getElementById('start_register').value;
+  var start = (document.getElementById('start_register').checked == true ? 'on' : 'off');
 
   if (hname == '' || dsize == '' || ssize == '' || imagename == '' || mac_address == '' || mem == '' || owner == '') {
     alert('All fields need to be completed');
