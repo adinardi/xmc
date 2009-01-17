@@ -1,3 +1,5 @@
+# Copyright (c) 2008-2009, Angelo DiNardi (adinardi@csh.rit.edu)
+
 from xen.xm.XenAPI import Session
 from mod_python import apache
 from mod_python import Session as MPSession
@@ -5,6 +7,9 @@ import MySQLdb
 import pgdb
 import time
 from pgdb import IntegrityError
+import struct, socket
+import os
+import xmlrpclib
 
 # MySQL Database Connection, xen DB
 conn = None
@@ -67,6 +72,18 @@ def _get_pg_db_conn():
   if (pg_conn is None):
     pg_conn = pgdb.connect(host='db.csh.rit.edu', user='net_user', password='<NET PASS HERE>', database='network')
   return pg_conn
+
+def _get_vblade_server():
+  server = xmlrpclib.ServerProxy("http://10.6.9.200:31337")
+  return server
+  
+def _start_vblade(id, vm_name, disk_name):
+  server = _get_vblade_server()
+  server.start_vblade(id, vm_name, disk_name)
+  
+def _stop_vblade(id, vm_name, disk_name):
+  server = _get_vblade_server()
+  server.stop_vblade(id, vm_name, disk_name)
 
 def _get_api(machine):
   session=Session('http://' + machine + ':9363');
@@ -307,12 +324,19 @@ def list_my_vms(req, all=0):
 def boot_vm(req, name, machine='clusterfuck'):
   user = _get_username(req)
   info = _get_user_info(user)
+  conn = _get_db_conn()
+  cur = conn.cursor()
 
   if (info['admin'] != 1):
     machine = 'clusterfuck'
+  
+  #cur.execute("SELECT id FROM pmmachines WHERE name = '" + MySQLdb.escape_string(machine) + "'")
+  #row = cur.fetchone()
+  #if row is None:
+  #  return {'status': 'FAIL', 'reason': 'Phyical Machine does not exist'}
+  #pm_id = int(row[1])
+  
   xenapi = _get_api(machine)
-  conn = _get_db_conn()
-  cur = conn.cursor()
   cur.execute("SELECT id, name, mac, mem, kernel, kernel_args, owner FROM vmmachines WHERE name = '" + MySQLdb.escape_string(name) + "'")
   row = cur.fetchone()
   if row is None:
@@ -357,6 +381,7 @@ def boot_vm(req, name, machine='clusterfuck'):
     # If we do, then loopback, otherwise we're going AoE baby
     if (dfile.find('.') == -1):
       location = 'phy:/dev/etherd/e' + str(did) + '.0'
+      _start_vblade(str(did), vmname, dfile)
     else:
       location = 'tap:aio:/mnt/vms/domains/' + vmname + '/' + dfile
 
@@ -375,6 +400,10 @@ def boot_vm(req, name, machine='clusterfuck'):
       'type': 'Disk'
       })
   xenapi.VM.start(vm_ref, 0)
+
+  # Update the database as to where we're putting this VM
+  #cur.execute("UPDATE vmmachines SET pmmachine_id = " + MySQLdb.escape_string(pm_id) + " WHERE name = '" + MySQLdb.escape_string(name) + "'")
+  
   _release_db_conn()
   return {'status': 'OK'}
 
@@ -385,13 +414,15 @@ def shutdown_vm(req, name):
   conn = _get_db_conn()
   cur = conn.cursor()
 
-  cur.execute("SELECT owner FROM vmmachines WHERE name = '" + MySQLdb.escape_string(name) + "'")
+  cur.execute("SELECT owner, id FROM vmmachines WHERE name = '" + MySQLdb.escape_string(name) + "'")
   row = cur.fetchone()
   if row is None:
     return {'status': 'FAIL', 'reason': 'VM Machine does not exist'}
 
   if (row[0] != user and info['admin'] != 1):
     return {'status': 'FAIL', 'reason': 'No permission for this VM'}
+    
+  vmid = row[1]
 
   vminfo = _find_vm(name)
   xenapi = _get_api(vminfo['machine'])
@@ -416,13 +447,15 @@ def destroy_vm(req, name):
   conn = _get_db_conn()
   cur = conn.cursor()
 
-  cur.execute("SELECT owner FROM vmmachines WHERE name = '" + MySQLdb.escape_string(name) + "'")
+  cur.execute("SELECT owner, id FROM vmmachines WHERE name = '" + MySQLdb.escape_string(name) + "'")
   row = cur.fetchone()
   if row is None:
     return {'status': 'FAIL', 'reason': 'VM Machine does not exist'}
 
   if (row[0] != user and info['admin'] != 1):
     return {'status': 'FAIL', 'reason': 'No permission for this VM'}
+    
+  vmid = row[1]
 
   vminfo = _find_vm(name)
   xenapi = _get_api(vminfo['machine'])
@@ -430,7 +463,15 @@ def destroy_vm(req, name):
   if vm_ref is None:
     return {'status': 'FAIL', 'reason':'No VM with that name'}
 
+  xenapi.VM.hard_shutdown(vm_ref[0])
   xenapi.VM.destroy(vm_ref[0])
+  
+  cur.execute("SELECT id, file FROM vmdisks WHERE vmmachineid = " + str(vmid))
+  rows = cur.fetchall()
+  for row in rows:
+      if (row[1].find('.') == -1):
+        _stop_vblade(str(row[0]), name, row[1])
+  
   _release_db_conn()
   return {'status': 'OK'}
 
@@ -461,3 +502,61 @@ def check_name_avail(req, name):
     return {'status': 'OK', 'avail': 1}
   _release_db_conn()
   return {'status': 'OK', 'avail': 0}
+
+def boot_pm(req, name):
+  user = _get_username(req)
+  info = _get_user_info(user)
+  if (info['admin'] != 1):
+    return {'status': 'FAIL', 'reason': 'You do not have permission to boot this machine'}
+    
+  conn = _get_db_conn()
+  cur = conn.cursor()
+  cur.execute("SELECT mac FROM pmmachines WHERE name = '" + MySQLdb.escape_string(name) + "'")
+  row = cur.fetchone()
+  if row is None:
+    _release_db_conn()
+    return {'status': 'FAIL', 'reason': 'Cannot lookup machine information.'}
+
+  # Boot the machine
+  _wake_on_lan(row[0])
+  # cur.execute("UPDATE pmmachines SET up = 1 WHERE name = '" + MySQLdb.escape_string(name) + "'")
+  
+  _release_db_conn()
+  return {'status': 'OK'}
+
+def shutdown_pm(req, name):
+  user = _get_username(req)
+  info = _get_user_info(user)
+  if (info['admin'] != 1):
+    return {'status': 'FAIL', 'reason': 'You do not have permission to shutdown this machine'}
+  
+  #conn = _get_db_conn()
+  #cur = conn.cursor()
+  
+  # We need to not ask about confirming the host key... this isn't interactive.
+  os.system( 'ssh -ostricthostkeychecking=no -oUserKnownHostsFile=/dev/null root@' + name + ' shutdown -h now' )
+  return {'status': 'OK'}
+
+# Downloaded from http://code.activestate.com/recipes/358449/
+# No license specifically attached.
+def _wake_on_lan(macaddress):
+    """ Switches on remote computers using WOL. """
+    # Check macaddress format and try to compensate.
+    if len(macaddress) == 12:
+        pass
+    elif len(macaddress) == 12 + 5:
+        sep = macaddress[2]
+        macaddress = macaddress.replace(sep, '')
+    else:
+        raise ValueError('Incorrect MAC address format')
+    # Pad the synchronization stream.
+    data = ''.join(['FFFFFFFFFFFF', macaddress * 20])
+    send_data = '' 
+    # Split up the hex values and pack.
+    for i in range(0, len(data), 2):
+        send_data = ''.join([send_data,
+                             struct.pack('B', int(data[i: i + 2], 16))])
+    # Broadcast it to the LAN.
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    sock.sendto(send_data, ('10.6.9.255', 7))

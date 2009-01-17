@@ -65,6 +65,9 @@ function listDataHandler(args) {
           element: pm_block
           }
         });
+      //thetr.event.listen({
+        //on: pm_block,
+        
     }
 
     for (var iter = 0, vm; vm = data[pm]['vms'][iter]; iter++) {
