@@ -1,11 +1,14 @@
 var IN_DRAG_VM = false;
 var CURRENT_OVER_PM = null;
+var LAST_PM_POPUP = null;
 
 function go_go_gadget_loader() {
   go_go_load_data();
 }
 
 function go_go_load_data() {
+  hide_pm_popup(null);
+  
   var r = new thetr.Request({
     url: 'check.py/list_all',
     handler: listDataHandler
@@ -37,9 +40,15 @@ function listDataHandler(args) {
 
     // Make PM Block
     var pm_block = get_div();
-    pm_block.style.width = '73px';
+    pm_block.style.width = '77px';
     pm_block.style.height = '33px';
-    pm_block.innerHTML = pm;
+    var mem_free = data[pm]['mem_free'];
+    if (typeof mem_free != 'undefined') {
+      mem_free = " (" + Math.ceil(parseInt(mem_free)/1024/1024) + ")"
+    } else {
+      mem_free = "";
+    }
+    pm_block.innerHTML = pm + '<br>' + data[pm]['mem'] + mem_free;
     pm_block.style.cssFloat = 'left';
     pm_block.style.border = '1px dashed purple';
     pm_div.appendChild(pm_block);
@@ -65,18 +74,26 @@ function listDataHandler(args) {
           element: pm_block
           }
         });
-      //thetr.event.listen({
-        //on: pm_block,
-        
     }
+    thetr.event.listen({
+      on: pm_block,
+      action: 'click',
+      handler: handle_pm_mouse_click,
+      args: {
+        clicked: data[pm],
+        pm_name: pm,
+        element: pm_block
+      }
+    });
 
     for (var iter = 0, vm; vm = data[pm]['vms'][iter]; iter++) {
       // Make VM Block
       var vm_block = get_div();
-      vm_block.style.width = '73px';
+      vm_block.style.width = '77px';
       vm_block.style.height = '33px';
       vm_block.style.cssFloat = 'left';
-      vm_block.innerHTML = vm.name;
+      // Mem is in bytes, mem/1024/1024 = MB
+      vm_block.innerHTML = vm.name + "<br>" + (parseInt(vm.mem_static_max)/1048576);
       vm_block.style.border = '1px solid black';
       vm_block.style.cursor = 'move';
       pm_div.appendChild(vm_block);
@@ -181,4 +198,113 @@ function migrate_done(args) {
   //alert('done migrating...');
   set_load_indicator('');
   go_go_load_data(); 
+}
+
+function handle_pm_mouse_click(args) {
+  show_pm_popup(args);
+}
+
+function show_pm_popup(args) {
+  hide_pm_popup(null);
+  
+  var pm = args.clicked;
+  var pm_block = args.element;
+  var pm_name = args.pm_name;
+  
+  var top = pm_block.offsetTop + 10;
+  var left = pm_block.offsetLeft + 10;
+  
+  var container = document.createElement('div');
+  container.style.position = 'absolute';
+  container.style.left = left;
+  container.style.top = top;
+  container.style.border = '2px solid orange';
+  container.style.backgroundColor = 'white';
+  
+  var html = [];
+  html.push(pm_name);
+  
+  if (pm['up'] == 0) {
+    html.push('<button name="boot_pm" onclick="boot_pm({pm: \'' + pm_name + '\'})">Boot</button>');
+  } else {
+    html.push('<button name="shutdown_pm" onclick="shutdown_pm({pm: \'' + pm_name + '\'})">Shutdown</button>'); 
+  }
+  
+  container.innerHTML = html.join('<br>');
+  
+  LAST_PM_POPUP = container;
+  document.body.appendChild(container);
+  thetr.event.listen({
+    on:document.body,
+    action: 'mousedown',
+    handler: hide_pm_popup
+  });
+}
+
+function hide_pm_popup(args) {
+  if (args && (
+      args.browserEvent.target.name == 'boot_pm' ||
+      args.browserEvent.target.name == 'shutdown_pm')) {
+        return;
+  }
+  if (typeof LAST_PM_POPUP != 'undefined' && LAST_PM_POPUP != null) {
+    document.body.removeChild(LAST_PM_POPUP);
+    LAST_PM_POPUP = null;
+  }
+  
+  thetr.event.unlisten({
+    on: document.body,
+    action: 'mousedown',
+    handler: hide_pm_popup
+    });
+}
+
+function boot_pm(args) {
+  var pm = args.pm;
+  
+  var check = confirm("Are you sure you want to boot '" + pm + "'?");
+  if (!check) {
+    return;
+  }
+  
+  var postArgs = new thetr.Request.ArgGen({
+    name: pm
+    });
+  var r = new thetr.Request({
+    url: 'check.py/boot_pm',
+    post: postArgs.toString(),
+    handler: boot_pm_done
+    });
+  set_load_indicator('Booting Phyical host "' + pm + '"...');
+  r.send();
+}
+
+function boot_pm_done(args) {
+  set_load_indicator('');
+  go_go_load_data();
+}
+
+function shutdown_pm(args) {
+  var pm = args.pm;
+  
+  var check = confirm("Are you sure you want to SHUTDOWN '" + pm + "'?\n\nALL VMs LEFT ON THE HOST WILL BE TERMINATED!");
+  if (!check) {
+    return;
+  }
+  
+  var postArgs = new thetr.Request.ArgGen({
+    name: pm
+    });
+  var r = new thetr.Request({
+    url: 'check.py/shutdown_pm',
+    post: postArgs.toString(),
+    handler: shutdown_pm_done
+    });
+  set_load_indicator('Shutting down Phyical host "' + pm + '"...');
+  r.send();
+}
+
+function shutdown_pm_done(args) {
+  set_load_indicator('');
+  go_go_load_data();
 }

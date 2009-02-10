@@ -95,42 +95,47 @@ def _get_api(machine):
   return xenapi;
 
 def list_all(req):
-  data = "{";
+  #data = "{";
   datao = {}
   m = 0;
   machines = _get_machines(False)
   for mach in machines:
     machine = mach['name'];
-    if (m):
-      data += ', ';
-    data += machine + ': [';
-    datao[machine] = {'up': mach['up']}
+    #if (m):
+      #data += ', ';
+    #data += machine + ': [';
+    datao[machine] = {'up': mach['up'], 'mem': int(mach['mem'])}
     datao[machine]['vms'] = []
     m += 1
 
     if (mach['up'] == 1):
       xenapi = _get_api(machine);
       if (xenapi is None):
-        data += ']';
+        #data += ']';
         datao[machine]['up'] = 0
         continue;
+      mach_api = xenapi.host_metrics.get_all_records()
+      total_mem = mach_api.popitem()[1]['memory_total']
+      # 196 is the base mem that must be free on the host
+      datao[machine]['mem_free'] = int(total_mem) - (192+18)*1024*1024
       records=xenapi.VM.get_all_records();
     else:
-      data += ']';
+      #data += ']';
       continue;
-    data += ']';
+    #data += ']';
 
     i = 0;
     for item in records:
       if (records[item]['name_label'] != 'Domain-0'):
-        if (i):
-          data += ", ";
-        data += "{name:'" + records[item]['name_label'] + "', uuid:'" + records[item]['uuid'] + "', mem_static_max:'" + records[item]['memory_static_max'] + "'}";
+        #if (i):
+          #data += ", ";
+        #data += "{name:'" + records[item]['name_label'] + "', uuid:'" + records[item]['uuid'] + "', mem_static_max:'" + records[item]['memory_static_max'] + "'}";
         ri = records[item]
         datao[machine]['vms'].append({'name': ri['name_label'], 'uuid': ri['uuid'], 'mem_static_max': ri['memory_static_max']})
+        datao[machine]['mem_free'] = datao[machine]['mem_free'] - int(ri['memory_static_max'])
         i += 1;
-    data += ']';
-  data += "}";
+    #data += ']';
+  #data += "}";
   _release_db_conn()
   return datao;
 
@@ -289,8 +294,8 @@ def create_vm(req, hname, dsize, ssize, imagename, mac, allocid, mem, owner, sta
   # ADD MYSQL DB WRITE HERE.
   cur.execute("INSERT INTO vmmachines (name, owner, mac, disk, mem, swap) VALUES('" + MySQLdb.escape_string(hname) + "', '" + MySQLdb.escape_string(owner) + "', '" + MySQLdb.escape_string(mac) + "', '" + MySQLdb.escape_string(dsize) + "', '" + MySQLdb.escape_string(mem) + "', '" + MySQLdb.escape_string(ssize) + "')");
   vmid = conn.insert_id()
-  cur.execute("INSERT INTO vmdisks (file, device, vmmachineid) VALUES ('disk.img', 'xvda2', " + str(vmid) + ")")
-  cur.execute("INSERT INTO vmdisks (file, device, vmmachineid) VALUES ('swap.img', 'xvda1', " + str(vmid) + ")")
+  cur.execute("INSERT INTO vmdisks (file, device, vmmachineid) VALUES ('disk', 'xvda2', " + str(vmid) + ")")
+  cur.execute("INSERT INTO vmdisks (file, device, vmmachineid) VALUES ('swap', 'xvda1', " + str(vmid) + ")")
   if (usingPrealloc == 1):
     cur.execute("DELETE FROM allocvmmachines WHERE id = " + str(int(allocid)))
 
@@ -519,7 +524,7 @@ def boot_pm(req, name):
 
   # Boot the machine
   _wake_on_lan(row[0])
-  # cur.execute("UPDATE pmmachines SET up = 1 WHERE name = '" + MySQLdb.escape_string(name) + "'")
+  cur.execute("UPDATE pmmachines SET up = 1 WHERE name = '" + MySQLdb.escape_string(name) + "'")
   
   _release_db_conn()
   return {'status': 'OK'}
@@ -530,8 +535,9 @@ def shutdown_pm(req, name):
   if (info['admin'] != 1):
     return {'status': 'FAIL', 'reason': 'You do not have permission to shutdown this machine'}
   
-  #conn = _get_db_conn()
-  #cur = conn.cursor()
+  conn = _get_db_conn()
+  cur = conn.cursor()
+  cur.execute("UPDATE pmmachines SET up = 0 WHERE name = '" + MySQLdb.escape_string(name) + "'")
   
   # We need to not ask about confirming the host key... this isn't interactive.
   os.system( 'ssh -ostricthostkeychecking=no -oUserKnownHostsFile=/dev/null root@' + name + ' shutdown -h now' )

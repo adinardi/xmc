@@ -269,7 +269,7 @@ function go_create_vm() {
     handler: go_create_vm_handler,
     post: postArgs.toString()
     });
-  set_load_indicator('Creating...');
+  set_status_box({ msg:'Creating...' });
   r.send(); 
   document.getElementById('vmconfig').style.display = 'none';
 }
@@ -282,8 +282,8 @@ function go_create_vm_handler(args) {
     set_load_indicator('');
     return;
   }
-  set_load_indicator('Creation Successful');
-  //document.getElementById('vmconfigStatus').innerHTML = 'Create Successful';
+  set_status_box({ msg:'Creation Successful', time: 10000 });
+  document.getElementById('vmconfigStatus').innerHTML = 'Creation Successful';
   setTimeout(function() {
     document.getElementById('vmconfigStatus').innerHTML = '';
     }, 6000);
