@@ -503,9 +503,18 @@ def check_name_avail(req, name):
   cur.execute("SELECT name FROM vmmachines WHERE name = '" + MySQLdb.escape_string(name) + "'")
   row = cur.fetchone()
   if row is None:
+    pg_conn = _get_pg_db_conn()
+    pg_cur = pg_conn.cursor()
+    pg_cur.execute("SELECT hostname FROM hosts WHERE hostname = '" + pgdb.escape_string(name) + "'")
+    row = pg_cur.fetchone()
+    if row is not None:
+      # Found in PG Start DB, FAIL
+      return {'status': 'OK', 'avail':0}
     _release_db_conn()
+    # NOT Found in Start OR vm list, OK
     return {'status': 'OK', 'avail': 1}
   _release_db_conn()
+  # Found Somewhere, FAIL
   return {'status': 'OK', 'avail': 0}
 
 def boot_pm(req, name):
