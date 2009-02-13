@@ -55,6 +55,8 @@ function listDataHandler(args) {
 
     if (data[pm]['up'] == 0) {
       pm_block.style.backgroundColor = 'grey';
+    } else if (data[pm]['responding'] == 0) {
+      pm_block.style.backgroundColor = 'red';
     } else {
       thetr.event.listen({
         on: pm_block,
@@ -222,11 +224,17 @@ function show_pm_popup(args) {
   container.style.backgroundColor = 'white';
   
   var html = [];
-  html.push(pm_name);
+  html.push('<b>' + pm_name + '</b>');
   
   if (pm['up'] == 0) {
+    html.push('This machine is off.');
     html.push('<button name="boot_pm" onclick="boot_pm({pm: \'' + pm_name + '\'})">Boot</button>');
   } else {
+    if (pm['responding'] == 0) {
+      html.push('This machine is either booting or has failed.<br>It was last known to be alive.');
+    } else {
+      html.push('This machine is alive.');
+    }
     html.push('<button name="shutdown_pm" onclick="shutdown_pm({pm: \'' + pm_name + '\'})">Shutdown</button>'); 
   }
   

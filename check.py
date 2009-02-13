@@ -104,7 +104,7 @@ def list_all(req):
     #if (m):
       #data += ', ';
     #data += machine + ': [';
-    datao[machine] = {'up': mach['up'], 'mem': int(mach['mem'])}
+    datao[machine] = {'up': mach['up'], 'mem': int(mach['mem']), 'responding': 1}
     datao[machine]['vms'] = []
     m += 1
 
@@ -112,7 +112,7 @@ def list_all(req):
       xenapi = _get_api(machine);
       if (xenapi is None):
         #data += ']';
-        datao[machine]['up'] = 0
+        datao[machine]['responding'] = 0
         continue;
       mach_api = xenapi.host_metrics.get_all_records()
       total_mem = mach_api.popitem()[1]['memory_total']
