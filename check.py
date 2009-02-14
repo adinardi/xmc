@@ -107,32 +107,40 @@ def create_vm(req, hname, dsize, ssize, imagename, mac, allocid, mem, owner, sta
   return xmclib.create_vm(_get_username(req), hname, dsize, ssize, imagename, mac, allocid, mem, owner, start_register)
 
 def list_my_vms(req, all=0):
+  req.register_cleanup(xmclib.cleanup)
   user = _get_username(req)
   return xmclib.list_user_vms(user, all)
 
 def boot_vm(req, name, machine='clusterfuck'):
+  req.register_cleanup(xmclib.cleanup)
   user = _get_username(req)
   return xmclib.boot_vm(user, name, machine)
 
 def shutdown_vm(req, name):
+  req.register_cleanup(xmclib.cleanup)
   user = _get_username(req)
   return xmclib.shutdown_vm(user, name)
 
 def destroy_vm(req, name):
+  req.register_cleanup(xmclib.cleanup)
   user = _get_username(req)
   return xmclib.destroy_vm(user, name)
 
 def get_base_images(req):
+  req.register_cleanup(xmclib.cleanup)
   user = _get_username(req)
   return xmclib.get_base_images(user)
 
 def check_name_avail(req, name):
+  req.register_cleanup(xmclib.cleanup)
   return xmclib.check_name_avail(name)
 
 def boot_pm(req, name):
+  req.register_cleanup(xmclib.cleanup)
   user = _get_username(req)
   return xmclib.boot_pm(user, name)
 
 def shutdown_pm(req, name):
+  req.register_cleanup(xmclib.cleanup)
   user = _get_username(req)
   return xmclib.shutdown_pm(user, name)

@@ -42,6 +42,10 @@ def is_admin(username):
     return True;
   return False;
 
+def cleanup():
+  _release_db_conn()
+  _release_pg_db_conn()
+
 def _get_db_conn():
   global conn
   if (conn is None):
@@ -59,6 +63,12 @@ def _get_pg_db_conn():
   if (pg_conn is None):
     pg_conn = pgdb.connect(host='db.csh.rit.edu', user='net_user', password='<NET PASS HERE>', database='network')
   return pg_conn
+
+def _release_pg_db_conn():
+  global pg_conn
+  if (pg_comm is not None):
+    pg_conn.close()
+    pg_conn = None
 
 def _get_vblade_server():
   server = xmlrpclib.ServerProxy("http://10.6.9.200:31337")
