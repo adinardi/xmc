@@ -18,6 +18,7 @@ def _is_admin(req):
   return xmclib.is_admin(u)
 
 def list_all(req):
+  req.register_cleanup(xmclib.cleanup)
   #data = "{";
   datao = {}
   m = 0;
@@ -63,6 +64,7 @@ def list_all(req):
   return datao;
 
 def migrate_live(req, frommachine, machineid, tomachine):
+  req.register_cleanup(xmclib.cleanup)
   if (not _is_admin(req)):
     return "{}";
   xenapi = xmclib.get_api(frommachine);
@@ -90,12 +92,14 @@ def migrate_live(req, frommachine, machineid, tomachine):
   #_release_db_conn()
 
 def get_user_info(req):
+  req.register_cleanup(xmclib.cleanup)
   user = _get_username(req);
   info = xmclib.get_user_info(user);
   #_release_db_conn()
   return {'user': info};
 
 def get_create_user_info(req):
+  req.register_cleanup(xmclib.cleanup)
   user = _get_username(req);
   info = xmclib.get_user_info(user);
   allocvms = xmclib.get_unused_vms(user);
@@ -104,6 +108,7 @@ def get_create_user_info(req):
   return all_info;
 
 def create_vm(req, hname, dsize, ssize, imagename, mac, allocid, mem, owner, start_register):
+  req.register_cleanup(xmclib.cleanup)
   return xmclib.create_vm(_get_username(req), hname, dsize, ssize, imagename, mac, allocid, mem, owner, start_register)
 
 def list_my_vms(req, all=0):
