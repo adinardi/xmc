@@ -66,7 +66,7 @@ def _get_pg_db_conn():
 
 def _release_pg_db_conn():
   global pg_conn
-  if (pg_comm is not None):
+  if (pg_conn is not None):
     pg_conn.close()
     pg_conn = None
 
@@ -208,7 +208,7 @@ def create_vm(uname, hname, dsize, ssize, imagename, mac, allocid, mem, owner, s
     pg_cur = pg_conn.cursor()
 
     #pg_cur.execute("SELECT last_ip FROM address_ranges WHERE first_ip = '129.21.61.1'")
-    pg_cur.execute("SELECT ip_address FROM host_cache WHERE ip_address BETWEEN '129.21.60.160' AND '129.21.60.175' AND in_use = false ORDER BY ip_address LIMIT 1")
+    pg_cur.execute("SELECT ip_address FROM host_cache WHERE ip_address BETWEEN '129.21.60.112' AND '129.21.60.175' AND in_use = false ORDER BY ip_address LIMIT 1")
     row = pg_cur.fetchone()
     if (row is not None):
       ip_addr = row[0]
