@@ -152,7 +152,8 @@ def _wake_on_lan(macaddress):
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     sock.sendto(send_data, ('10.6.9.255', 7))
 
-def create_vm(uname, hname, dsize, ssize, imagename, mac, allocid, mem, owner, start_register):
+# Create a VM based on the parameters.
+def create_vm(uname, hname, dsize, ssize, imagename, mac, allocid, mem, owner, start_register, start_range):
   user = get_user_info(uname);
   conn = _get_db_conn();
   cur = conn.cursor();
@@ -207,8 +208,15 @@ def create_vm(uname, hname, dsize, ssize, imagename, mac, allocid, mem, owner, s
     pg_conn = _get_pg_db_conn()
     pg_cur = pg_conn.cursor()
 
-    #pg_cur.execute("SELECT last_ip FROM address_ranges WHERE first_ip = '129.21.61.1'")
-    pg_cur.execute("SELECT ip_address FROM host_cache WHERE ip_address BETWEEN '129.21.60.112' AND '129.21.60.175' AND in_use = false ORDER BY ip_address LIMIT 1")
+    # Figure out the IP range we want to deal with.
+    if (start_range == 'userrack'):
+      first_ip = '129.21.60.112'
+      last_ip = '129.21.60.175'
+    elif (start_range == 'projects'):
+      first_ip = '129.21.60.176'
+      last_ip = '129.21.60.226'
+      
+    pg_cur.execute("SELECT ip_address FROM host_cache WHERE ip_address BETWEEN '" + first_ip + "' AND '" + last_ip + "' AND in_use = false ORDER BY ip_address LIMIT 1")
     row = pg_cur.fetchone()
     if (row is not None):
       ip_addr = row[0]
@@ -262,13 +270,10 @@ def list_user_vms(user, all=0):
   #_release_db_conn()
   return vms
 
-def boot_vm(user, name, machine='clusterfuck'):
+def boot_vm(user, name, machine=''):
   info = get_user_info(user)
   conn = _get_db_conn()
   cur = conn.cursor()
-
-  if (info['admin'] != 1):
-    machine = 'clusterfuck'
   
   #cur.execute("SELECT id FROM pmmachines WHERE name = '" + MySQLdb.escape_string(machine) + "'")
   #row = cur.fetchone()
@@ -276,7 +281,6 @@ def boot_vm(user, name, machine='clusterfuck'):
   #  return {'status': 'FAIL', 'reason': 'Phyical Machine does not exist'}
   #pm_id = int(row[1])
   
-  xenapi = get_api(machine)
   cur.execute("SELECT id, name, mac, mem, kernel, kernel_args, owner FROM vmmachines WHERE name = '" + MySQLdb.escape_string(name) + "'")
   row = cur.fetchone()
   if row is None:
@@ -284,6 +288,28 @@ def boot_vm(user, name, machine='clusterfuck'):
 
   if (row[6] != user and info['admin'] != 1):
     return {'status': 'FAIL', 'reason': 'No permission on this VM'}
+
+  # If not an admin, force a machine that we choose.
+  # We'll try and pick a machine that:
+  #   1. Has enough free memory to support this VM
+  #   2. Has the most free memory of all the machines
+  if (info['admin'] != 1 or machine == ''):
+    #machine = 'clusterfuck'
+    all_machines = list_all()
+    most_free = 0
+    for m in all_machines:
+      # The machine needs to be responding & up for it to be useful to us
+      if (all_machines[m]['responding'] == 1 and all_machines[m]['up'] == 1):
+        # Check if this machine has enough free memory and if it has the MOST free memory we've seen
+        free_mem = int(all_machines[m]['mem_free'])/1024/1024
+        if (free_mem > int(row[3]) and free_mem > most_free):
+          most_free = free_mem
+          machine = m
+    # We didn't seem to find a machine with space available. OH SHIT.
+    if machine == '':
+      return {'status': 'FAIL', 'reason': 'No space avilable on host machines'}
+
+  xenapi = get_api(machine)
 
   vmid = row[0]
   vmname = row[1]
@@ -482,4 +508,48 @@ def shutdown_vm(user, name):
   #_release_db_conn()
   return {'status': 'OK'}
 
+def list_all():
+  #req.register_cleanup(_cleanup)
+  #data = "{";
+  datao = {}
+  m = 0;
+  machines = get_machines(False)
+  for mach in machines:
+    machine = mach['name'];
+    #if (m):
+      #data += ', ';
+    #data += machine + ': [';
+    datao[machine] = {'up': mach['up'], 'mem': int(mach['mem']), 'responding': 1}
+    datao[machine]['vms'] = []
+    m += 1
 
+    if (mach['up'] == 1):
+      xenapi = get_api(machine);
+      if (xenapi is None):
+        #data += ']';
+        datao[machine]['responding'] = 0
+        continue;
+      mach_api = xenapi.host_metrics.get_all_records()
+      total_mem = mach_api.popitem()[1]['memory_total']
+      # 196 is the base mem that must be free on the host
+      datao[machine]['mem_free'] = int(total_mem) - (192+18)*1024*1024
+      records=xenapi.VM.get_all_records();
+    else:
+      #data += ']';
+      continue;
+    #data += ']';
+
+    i = 0;
+    for item in records:
+      if (records[item]['name_label'] != 'Domain-0'):
+        #if (i):
+          #data += ", ";
+        #data += "{name:'" + records[item]['name_label'] + "', uuid:'" + records[item]['uuid'] + "', mem_static_max:'" + records[item]['memory_static_max'] + "'}";
+        ri = records[item]
+        datao[machine]['vms'].append({'name': ri['name_label'], 'uuid': ri['uuid'], 'mem_static_max': ri['memory_static_max']})
+        datao[machine]['mem_free'] = datao[machine]['mem_free'] - int(ri['memory_static_max'])
+        i += 1;
+    #data += ']';
+  #data += "}";
+  #_release_db_conn()
+  return datao

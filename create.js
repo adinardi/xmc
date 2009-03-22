@@ -242,6 +242,7 @@ function go_create_vm() {
   var mem = document.getElementById('mem').value;
   var owner = document.getElementById('owner').value;
   var start = (document.getElementById('start_register').checked == true ? 'on' : 'off');
+  var range = document.getElementById('start_range').value;
 
   if (hname == '' || dsize == '' || ssize == '' || imagename == '' || mac_address == '' || mem == '' || owner == '') {
     alert('All fields need to be completed');
@@ -262,7 +263,8 @@ function go_create_vm() {
     mem: mem,
     owner: owner,
     allocid: (CHOSEN_VM_SPEC.id ? CHOSEN_VM_SPEC.id : 'new'),
-    start_register: start
+    start_register: start,
+    start_range: range
     });
   var r = new thetr.Request({
     url: 'check.py/create_vm',

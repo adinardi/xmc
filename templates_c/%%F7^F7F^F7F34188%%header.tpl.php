@@ -1,4 +1,4 @@
-<?php /* Smarty version 2.6.18, created on 2008-11-18 17:31:09
+<?php /* Smarty version 2.6.18, created on 2009-03-22 05:42:23
          compiled from header.tpl */ ?>
 <html>
 <head>
@@ -41,4 +41,6 @@ Status Box
   <span><a href="index.php?p=create">Create</a></span>
   <span>&nbsp;</span>
   <span><a href="index.php?p=manage">Manage My VMs</a></span>
+  <span>&nbsp;</span>
+  <span style="font-size: 9px"><a href="whatsnew.html" target="_new">What's New?</a> (3/22/09)</span>
 </div>

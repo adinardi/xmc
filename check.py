@@ -21,49 +21,7 @@ def _cleanup():
   xmclib.cleanup()
 
 def list_all(req):
-  #req.register_cleanup(_cleanup)
-  #data = "{";
-  datao = {}
-  m = 0;
-  machines = xmclib.get_machines(False)
-  for mach in machines:
-    machine = mach['name'];
-    #if (m):
-      #data += ', ';
-    #data += machine + ': [';
-    datao[machine] = {'up': mach['up'], 'mem': int(mach['mem']), 'responding': 1}
-    datao[machine]['vms'] = []
-    m += 1
-
-    if (mach['up'] == 1):
-      xenapi = xmclib.get_api(machine);
-      if (xenapi is None):
-        #data += ']';
-        datao[machine]['responding'] = 0
-        continue;
-      mach_api = xenapi.host_metrics.get_all_records()
-      total_mem = mach_api.popitem()[1]['memory_total']
-      # 196 is the base mem that must be free on the host
-      datao[machine]['mem_free'] = int(total_mem) - (192+18)*1024*1024
-      records=xenapi.VM.get_all_records();
-    else:
-      #data += ']';
-      continue;
-    #data += ']';
-
-    i = 0;
-    for item in records:
-      if (records[item]['name_label'] != 'Domain-0'):
-        #if (i):
-          #data += ", ";
-        #data += "{name:'" + records[item]['name_label'] + "', uuid:'" + records[item]['uuid'] + "', mem_static_max:'" + records[item]['memory_static_max'] + "'}";
-        ri = records[item]
-        datao[machine]['vms'].append({'name': ri['name_label'], 'uuid': ri['uuid'], 'mem_static_max': ri['memory_static_max']})
-        datao[machine]['mem_free'] = datao[machine]['mem_free'] - int(ri['memory_static_max'])
-        i += 1;
-    #data += ']';
-  #data += "}";
-  #_release_db_conn()
+  datao = xmclib.list_all()
   _cleanup()
   return datao;
 
@@ -127,7 +85,7 @@ def list_my_vms(req, all=0):
   _cleanup()
   return ret
 
-def boot_vm(req, name, machine='clusterfuck'):
+def boot_vm(req, name, machine=''):
   #req.register_cleanup(_cleanup)
   user = _get_username(req)
   ret = xmclib.boot_vm(user, name, machine)
