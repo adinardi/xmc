@@ -13,21 +13,29 @@ conn = None
 # Postgres Database Connection, network DB
 pg_conn = None
 
+API_CONNECTIONS = {}
+MACHINES= None
+
 def _handle_cleanup():
   _release_db_conn()
 
 def get_machines(onlineOnly=True):
-  conn = _get_db_conn()
-  cur = conn.cursor()
-  extra = ''
-  if (onlineOnly):
-    extra = ' WHERE up = 1'
-  cur.execute("SELECT id, name, mac, mem, up FROM pmmachines" + extra)
+  global MACHINES
+  if (MACHINES is None):
+    conn = _get_db_conn()
+    cur = conn.cursor()
+    extra = ''
+    if (onlineOnly):
+      extra = ' WHERE up = 1'
+    cur.execute("SELECT id, name, mac, mem, up FROM pmmachines" + extra)
 
-  machines = []
-  rows = cur.fetchall()
-  for row in rows:
-    machines.append({'id': row[0], 'name': row[1], 'mac': row[2], 'mem': row[3], 'up': row[4]})
+    machines = []
+    rows = cur.fetchall()
+    for row in rows:
+      machines.append({'id': row[0], 'name': row[1], 'mac': row[2], 'mem': row[3], 'up': row[4]})
+    MACHINES = machines
+  else:
+    machines = MACHINES
 
   return machines
 
@@ -83,12 +91,18 @@ def _stop_vblade(id, vm_name, disk_name):
   server.stop_vblade(id, vm_name, disk_name)
 
 def get_api(machine):
-  session=Session('http://' + machine + ':9363');
-  try:
-    session.login_with_password('','');
-    xenapi = session.xenapi;
-  except:
-    xenapi = None;
+  global API_CONNECTIONS
+  if (machine in API_CONNECTIONS):
+    xenapi = API_CONNECTIONS[machine]
+  else:
+    session=Session('http://' + machine + ':9363');
+    try:
+      session.login_with_password('','');
+      xenapi = session.xenapi;
+      API_CONNECTIONS[machine] = xenapi
+    except:
+      xenapi = None;
+  
   return xenapi;
 
 def find_vm(name):
@@ -104,6 +118,39 @@ def find_vm(name):
       ps = record['power_state']
       return {'found': 1, 'power_state': ps, 'machine': machine, 'uuid': record['uuid']}
   return {'found': 0, 'power_state': 'Off'}
+  
+def get_vm_state(name, ignoreFail = False):
+  failed = False
+  pm = get_vm_location(name)
+  if (res == None):
+    # We need to locate the VM, we don't know where it is.
+    failed = True
+
+  if (failed == False):
+    xenapi = get_api(pm)
+    if (xenapi is None):
+      failed = True
+    if (failed == False):
+      records = xenapi.VM.get_by_name(name)
+      if len(records) > 0:
+        record = xenapi.VM.get_record(records[0]);
+        ps = record['power_state']
+        return {'found': 1, 'power_state': ps, 'machine': machine, 'uuid': record['uuid']}
+  return {}
+
+def get_vm_location(name):
+  conn = _get_db_conn()
+  cur = conn.cursor()
+  cur.execute("SELECT pmmachines.name FROM pmmachines, vmmachines WHERE pmmachines.id = vmmachines.pmmachine_id AND vmmachines.name = '" + MySQLdb.escape_string(name) + "'")
+  res = cur.fetchone()
+  if (res == None):
+    return None
+  else:
+    return res[0]
+
+def fix_vm_location(name):
+  
+  return ""
 
 def get_user_info(user):
   conn = _get_db_conn();
@@ -262,7 +309,7 @@ def list_user_vms(user, all=0):
   extra = ''
   if (doall == 0):
     extra = " WHERE owner='" + user + "'"
-  cur.execute("SELECT id, name, owner, mac, disk, mem, swap, enabled FROM vmmachines" + extra)
+  cur.execute("SELECT id, name, owner, mac, disk, mem, swap, enabled FROM vmmachines" + extra + " ORDER BY owner, name")
   rows = cur.fetchall()
   vms = []
   for row in rows:

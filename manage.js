@@ -71,9 +71,9 @@ function handle_list_my_vms(args) {
     if (vm.enabled == 1) {
       if (vm.online.power_state == 'Running') {
         content.push('<button onclick="do_shutdown({name:\'' + vm.name + '\'})">Shutdown</button>');
-        content.push('<button onclick="do_destroy({name:\'' + vm.name + '\'})">Destroy</button>');
+        content.push('<button onclick="do_destroy({name:\'' + vm.name + '\'})">Hard Power Off</button>');
       } else if (vm.online.power_state == 'Halted') {
-        content.push('<button onclick="do_destroy({name:\'' + vm.name + '\'})">Destroy</button>');
+        content.push('<button onclick="do_destroy({name:\'' + vm.name + '\'})">Hard Power Off</button>');
       } else if (vm.online.power_state == 'Off') {
         content.push('<button onclick="do_boot({name:\'' + vm.name + '\'})">Boot</button>');
       }
@@ -113,7 +113,7 @@ function handle_shutdown(args) {
 }
 
 function do_destroy(args) {
-  var check = confirm("Are you sure you want to MURDER " + args.name + "?");
+  var check = confirm("Are you sure you want to MURDER (hard power off) " + args.name + "?");
   if (!check) {
     return;
   }
@@ -122,7 +122,7 @@ function do_destroy(args) {
     url: 'check.py/destroy_vm?name=' + args.name,
     handler: handle_destroy
     });
-  set_status_box({ msg: 'Destroying ' + args.name + '...' });
+  set_status_box({ msg: 'Powering off ' + args.name + '...' });
   r.send();
 }
 

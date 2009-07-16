@@ -38,5 +38,5 @@ Status Box
   <span>&nbsp;</span>
   <span><a href="index.php?p=manage">Manage My VMs</a></span>
   <span>&nbsp;</span>
-  <span style="font-size: 9px"><a href="whatsnew.html" target="_new">What's New?</a> (3/22/09)</span>
+  <span style="font-size: 9px"><a href="whatsnew.html" target="_new">What's New?</a> (4/21/09)</span>
 </div>

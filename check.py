@@ -72,9 +72,9 @@ def get_create_user_info(req):
   _cleanup()
   return all_info;
 
-def create_vm(req, hname, dsize, ssize, imagename, mac, allocid, mem, owner, start_register):
+def create_vm(req, hname, dsize, ssize, imagename, mac, allocid, mem, owner, start_register, start_range):
   #req.register_cleanup(_cleanup)
-  ret = xmclib.create_vm(_get_username(req), hname, dsize, ssize, imagename, mac, allocid, mem, owner, start_register)
+  ret = xmclib.create_vm(_get_username(req), hname, dsize, ssize, imagename, mac, allocid, mem, owner, start_register, start_range)
   _cleanup()
   return ret
 
