@@ -20,8 +20,30 @@ def _is_admin(req):
 def _cleanup():
   xmclib.cleanup()
 
+# List all of the Physical Machines and the VMs running on them
+# This function loads data cached in the DB.
 def list_all(req):
-  datao = xmclib.list_all()
+  # datao = xmclib.list_all()
+  conn = xmclib._get_db_conn()
+  cur = conn.cursor()
+  
+  datao = {}
+  
+  cur.execute("SELECT name, up, mem FROM pmmachines ORDER BY name")
+  rows = cur.fetchall()
+  for row in rows:
+    machine_name = row[0]
+    datao[machine_name] = {'up': row[1], 'mem': int(row[2])}
+    datao[machine_name]['vms'] = []
+    datao[machine_name]['mem_free'] = (int(row[2]) - 192 - 18) * 1024 * 1024
+    
+  cur.execute("SELECT vmmachines.name, vmmachines.mem, pmmachines.name, vmmachines.last_uuid FROM vmmachines, pmmachines WHERE vmmachines.pmmachine_id = pmmachines.id")
+  rows = cur.fetchall()
+  for row in rows:
+    machine_name = row[2]
+    datao[machine_name]['vms'].append({'name': row[0], 'uuid': row[3], 'mem_static_max': int(row[1]) * 1024 * 1024})
+    datao[machine_name]['mem_free'] = datao[machine_name]['mem_free'] - (int(row[1]) * 1024 * 1024)
+  
   _cleanup()
   return datao;
 
