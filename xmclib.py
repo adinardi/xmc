@@ -308,12 +308,29 @@ def list_user_vms(user, all=0):
   cur = conn.cursor()
   extra = ''
   if (doall == 0):
-    extra = " WHERE owner='" + user + "'"
-  cur.execute("SELECT id, name, owner, mac, disk, mem, swap, enabled FROM vmmachines" + extra + " ORDER BY owner, name")
+    extra = " WHERE vmmachines.owner='" + user + "'"
+  cur.execute("SELECT vmmachines.id, vmmachines.name, vmmachines.owner, vmmachines.mac, vmmachines.disk, vmmachines.mem, vmmachines.swap, vmmachines.enabled, pmmachines.name, vmmachines.last_uuid, vmmachines.power_state FROM vmmachines LEFT JOIN pmmachines ON vmmachines.pmmachine_id = pmmachines.id" + extra + " ORDER BY vmmachines.owner, vmmachines.name")
   rows = cur.fetchall()
   vms = []
   for row in rows:
-    vms.append({'id': int(row[0]), 'name': row[1], 'owner': row[2], 'mac': row[3], 'disk': int(row[4]), 'mem': int(row[5]), 'swap': int(row[6]), 'enabled': int(row[7]), 'online': find_vm(row[1])})
+    if row[10] is None:
+      power_state = 'Off'
+    else:
+      power_state = row[10]
+      
+    if row[8] is None:
+      machine = ''
+    else:
+      machine = row[8]
+      
+    if row[9] is None:
+      uuid = ''
+      found = 0
+    else:
+      uuid = row[9]
+      found = 1
+      
+    vms.append({'id': int(row[0]), 'name': row[1], 'owner': row[2], 'mac': row[3], 'disk': int(row[4]), 'mem': int(row[5]), 'swap': int(row[6]), 'enabled': int(row[7]), 'online': {'found': found, 'power_state': power_state, 'machine': machine, 'uuid': uuid}})
   #_release_db_conn()
   return vms
 
@@ -593,7 +610,7 @@ def list_all():
           #data += ", ";
         #data += "{name:'" + records[item]['name_label'] + "', uuid:'" + records[item]['uuid'] + "', mem_static_max:'" + records[item]['memory_static_max'] + "'}";
         ri = records[item]
-        datao[machine]['vms'].append({'name': ri['name_label'], 'uuid': ri['uuid'], 'mem_static_max': ri['memory_static_max']})
+        datao[machine]['vms'].append({'name': ri['name_label'], 'uuid': ri['uuid'], 'mem_static_max': ri['memory_static_max'], 'power_state': ri['power_state']})
         datao[machine]['mem_free'] = datao[machine]['mem_free'] - int(ri['memory_static_max'])
         i += 1;
     #data += ']';
