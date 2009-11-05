@@ -57,7 +57,7 @@ def cleanup():
 def _get_db_conn():
   global conn
   if (conn is None):
-    conn = MySQLdb.connect(host='localhost', user='root', passwd='<XEN PASS HERE>', db='xen')
+    conn = MySQLdb.connect(host='db.csh.rit.edu', user='xen', passwd='<XEN PASS HERE>', db='xen')
   return conn
 
 def _release_db_conn():
