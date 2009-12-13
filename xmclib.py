@@ -257,11 +257,11 @@ def create_vm(uname, hname, dsize, ssize, imagename, mac, allocid, mem, owner, s
 
     # Figure out the IP range we want to deal with.
     if (start_range == 'userrack'):
-      first_ip = '129.21.60.112'
-      last_ip = '129.21.60.175'
+      first_ip = '129.21.50.176'
+      last_ip = '129.21.60.249'
     elif (start_range == 'projects'):
-      first_ip = '129.21.60.176'
-      last_ip = '129.21.60.226'
+      first_ip = '129.21.50.1'
+      last_ip = '129.21.50.64'
       
     pg_cur.execute("SELECT ip_address FROM host_cache WHERE ip_address BETWEEN '" + first_ip + "' AND '" + last_ip + "' AND in_use = false ORDER BY ip_address LIMIT 1")
     row = pg_cur.fetchone()
