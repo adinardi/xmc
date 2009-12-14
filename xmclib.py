@@ -18,15 +18,22 @@ MACHINES= None
 
 def _handle_cleanup():
   _release_db_conn()
+  
+def get_last_sync_time():
+  conn = _get_db_conn()
+  cur = conn.cursor()
+  cur.execute("SELECT last_refresh FROM meta LIMIT 1")
+  row = cur.fetchone()
+  return row[0].strftime("%d/%m/%Y %H:%M:%S")
 
 def get_machines(onlineOnly=True):
   global MACHINES
   if (MACHINES is None):
     conn = _get_db_conn()
     cur = conn.cursor()
-    extra = ''
+    extra = ' WHERE live = 1'
     if (onlineOnly):
-      extra = ' WHERE up = 1'
+      extra = ' WHERE up = 1 and live = 1'
     cur.execute("SELECT id, name, mac, mem, up FROM pmmachines" + extra)
 
     machines = []
@@ -99,6 +106,7 @@ def get_api(machine):
     try:
       session.login_with_password('','');
       xenapi = session.xenapi;
+      xenapi.VM.get_all_records();
       API_CONNECTIONS[machine] = xenapi
     except:
       xenapi = None;
@@ -522,7 +530,7 @@ def boot_pm(user, name):
 
   # Boot the machine
   _wake_on_lan(row[0])
-  cur.execute("UPDATE pmmachines SET up = 1 WHERE name = '" + MySQLdb.escape_string(name) + "'")
+  # cur.execute("UPDATE pmmachines SET up = 1 WHERE name = '" + MySQLdb.escape_string(name) + "'")
   
   #_release_db_conn()
   return {'status': 'OK'}

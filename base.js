@@ -62,3 +62,17 @@ function load_user_info_handler(args) {
     CURRENT_USER_INFO.onloaded();
   }
 }
+
+function load_last_refresh_time() {
+    var url = 'check.py/get_last_sync_time';
+    var r = new thetr.Request({
+        url: url,
+        handler: load_last_refresh_time_handler
+    });
+    r.send();
+}
+
+function load_last_refresh_time_handler(args) {
+    var data = eval( "(" + args.request.data + ")" );
+    document.getElementById('last_refresh_time').innerHTML = data.last_sync_time;
+}

@@ -27,7 +27,7 @@
     </style>
   {/literal}
 </head>
-<body onload="go_go_gadget_loader()">
+<body onload="load_last_refresh_time(); go_go_gadget_loader();">
 <div class="statusbox" id="status_box" style="display: none">
 Status Box
 </div>
@@ -37,6 +37,8 @@ Status Box
   <span><a href="index.php?p=create">Create</a></span>
   <span>&nbsp;</span>
   <span><a href="index.php?p=manage">Manage My VMs</a></span>
+  <span>&nbsp;</span>
+  <span>Last Sync: (<span id="last_refresh_time"></span>)</span>
   <span>&nbsp;</span>
   <span style="font-size: 9px"><a href="whatsnew.html" target="_new">What's New?</a> (4/21/09)</span>
 </div>

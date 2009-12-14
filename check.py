@@ -29,7 +29,7 @@ def list_all(req):
   
   datao = {}
   
-  cur.execute("SELECT name, up, mem FROM pmmachines ORDER BY name")
+  cur.execute("SELECT name, up, mem FROM pmmachines WHERE live = 1 ORDER BY name")
   rows = cur.fetchall()
   for row in rows:
     machine_name = row[0]
@@ -75,6 +75,11 @@ def migrate_live(req, frommachine, machineid, tomachine):
       cleaning = 0
   #_release_db_conn()
   _cleanup()
+
+def get_last_sync_time(req):
+  time = xmclib.get_last_sync_time()
+  _cleanup()
+  return {'last_sync_time': time}
 
 def get_user_info(req):
   #req.register_cleanup(_cleanup)
